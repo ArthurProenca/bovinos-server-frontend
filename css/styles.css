@@ -1,0 +1,235 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Pixelify+Sans:wght@400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Pixelify+Sans:wght@400..700&display=swap');
+
+
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background-color: gainsboro;
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: whitesmoke;
+    padding: 5rem;
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.titleSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.title {
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 0.4fr 1.6fr 1fr;
+    grid-template-rows: 0.1fr .8fr 0.1fr;
+    gap: 0px 0px;
+    grid-auto-flow: row;
+    grid-template-areas:
+        "title title title"
+        "status status playersList "
+        "dns dns playersList";
+    align-items: center;
+    justify-content: center;
+    border-radius: .5rem;
+    padding: 50px;
+    margin: 10px;
+    border: 2px solid lightgray;
+
+}
+
+#gridOnline {
+    display: none;
+}
+
+.gridOffline {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8d7da; /* Cor de fundo leve para indicar que está offline */
+    border: 2px solid #f5c6cb; /* Borda rosa clara */
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Sombra suave */
+    margin: 20px;
+    width: 80%;
+    max-width: 600px;
+}
+
+.subtitle h3 {
+    color: #721c24; /* Cor do texto para indicar um estado de erro */
+    font-family: 'Pixelify Sans', sans-serif;
+    font-size: 1rem;
+    margin-bottom: 20px;
+}
+
+.turnOn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.turnOn span {
+    color: #721c24;
+}
+
+.turnOn button {
+    background-color: #d4edda; /* Cor de fundo verde clara */
+    color: #155724; /* Texto verde escuro */
+    border: 1px solid #c3e6cb; /* Borda verde clara */
+    padding: 10px 20px;
+    font-size: 1em;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Arial', sans-serif;
+}
+
+.turnOn button:hover {
+    background-color: #c3e6cb;
+    border-color: #b1dfbb; /* Verde mais claro ao passar o mouse */
+}
+
+
+.title {
+    grid-area: title;
+    text-align: center;
+}
+
+.players {
+    grid-area: players;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.description {
+    grid-area: description;
+    text-align: center;
+}
+
+.playersList {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    grid-area: playersList;
+}
+
+.icon {
+    grid-area: icon;
+    text-align: center;
+
+}
+
+.dns {
+    grid-area: dns;
+    gap: 10px;
+    display: flex;
+    align-items: center;
+    background: #1a1a1a;
+    color: #ffffff;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    
+}
+
+.dns span {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 16px;
+}
+
+.dns button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px;
+    margin-left: 10px;
+}
+
+.dns button:hover {
+    background-color: #45a049;
+}
+
+.status {
+    grid-area: status;
+    text-align: left;
+    display: flex;
+    flex-direction: row;
+    width: 100%;;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.copied {
+    display: none;
+}
+
+.playersSection {
+    display: flex;
+    flex-direction: column;
+}
+
+.offline-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.offline-message p {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+.offline-message button {
+    padding: 10px 20px;
+    font-size: 1em;
+    color: #ffffff;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.offline-message button:hover {
+    background-color: #45a049;
+}
+
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
