@@ -87,15 +87,16 @@ async function startServer() {
     try {
         var response = await fetch('https://l5y1ma3oq2.execute-api.sa-east-1.amazonaws.com/start-server', { method: 'GET' });
         response = await response.json();
-        if (response.online !== undefined) {
-            document.getElementById("gridOnline").style.display = 'grid';
+        document.getElementById("gridOnline").style.display = 'grid';
             document.getElementById("gridOffline").style.display = 'none';
 
             document.getElementById("playersList").style.display = 'none';
-            document.getElementById("status").style.display = 'none';
+            document.getElementById("ms").style.display = 'none';
+            document.getElementById("version").style.display = 'none';
+            document.getElementById("users").style.display = 'none';
 
-        }
-
+            document.getElementById("serverStatus").style.display = "flex";
+            document.getElementById("serverStatusSpan").innerHTML = "O servidor deve iniciar em até 5 minutos, aguarde!";
 
         //checkServerStatus("https://api.mcsrvstat.us/3/mc-bovinos.friday.codes");
     } catch (error) {

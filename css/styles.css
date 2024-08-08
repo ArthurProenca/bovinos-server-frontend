@@ -65,18 +65,22 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: #f8d7da; /* Cor de fundo leve para indicar que está offline */
-    border: 2px solid #f5c6cb; /* Borda rosa clara */
+    background-color: #f8d7da;
+    /* Cor de fundo leve para indicar que está offline */
+    border: 2px solid #f5c6cb;
+    /* Borda rosa clara */
     border-radius: 10px;
     padding: 2rem;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Sombra suave */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    /* Sombra suave */
     margin: 20px;
     width: 80%;
     max-width: 600px;
 }
 
 .subtitle h3 {
-    color: #721c24; /* Cor do texto para indicar um estado de erro */
+    color: #721c24;
+    /* Cor do texto para indicar um estado de erro */
     font-family: 'Pixelify Sans', sans-serif;
     font-size: 1rem;
     margin-bottom: 20px;
@@ -94,9 +98,12 @@ body {
 }
 
 .turnOn button {
-    background-color: #d4edda; /* Cor de fundo verde clara */
-    color: #155724; /* Texto verde escuro */
-    border: 1px solid #c3e6cb; /* Borda verde clara */
+    background-color: #d4edda;
+    /* Cor de fundo verde clara */
+    color: #155724;
+    /* Texto verde escuro */
+    border: 1px solid #c3e6cb;
+    /* Borda verde clara */
     padding: 10px 20px;
     font-size: 1em;
     border-radius: 5px;
@@ -106,7 +113,8 @@ body {
 
 .turnOn button:hover {
     background-color: #c3e6cb;
-    border-color: #b1dfbb; /* Verde mais claro ao passar o mouse */
+    border-color: #b1dfbb;
+    /* Verde mais claro ao passar o mouse */
 }
 
 
@@ -141,6 +149,10 @@ body {
 
 }
 
+.serverStatus span {
+    margin-left: 10px;
+}
+
 .dns {
     grid-area: dns;
     gap: 10px;
@@ -151,7 +163,7 @@ body {
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    
+
 }
 
 .dns span {
@@ -180,7 +192,8 @@ body {
     text-align: left;
     display: flex;
     flex-direction: row;
-    width: 100%;;
+    width: 100%;
+    ;
     align-items: center;
     justify-content: space-between;
 }
@@ -229,9 +242,18 @@ body {
     margin: 20px auto;
 }
 
+#serverStatus {
+    display: none;
+}
+
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Estilo para telas pequenas (smartphones) */
@@ -250,7 +272,10 @@ body {
             "dns";
     }
 
-    .title, .status, .playersList, .dns {
+    .title,
+    .status,
+    .playersList,
+    .dns {
         margin-top: 2rem;
         text-align: center;
         width: 100%;
@@ -295,7 +320,9 @@ body {
             "dns playersList";
     }
 
-    .status, .playersList, .dns {
+    .status,
+    .playersList,
+    .dns {
         text-align: center;
     }
 
