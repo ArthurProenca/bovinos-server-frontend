@@ -9,7 +9,7 @@ async function isServerOn(apiResponse) {
 
 async function checkServerStatus(url) {
     document.getElementById('spinnerLoading').style.display = 'block';
-    
+
     try {
         const response = await fetch(url);
         const apiResponse = response.json();
@@ -50,13 +50,16 @@ function updatePageWithServerData(data) {
     playersElement.textContent = `${data.players.online} Players`;
 
     const playersListSection = document.querySelector('.playersSection');
-    playersListSection.innerHTML 
+    playersListSection.innerHTML
 
-    data.players.list.forEach(player => {
-        const playerSpan = document.createElement('span');
-        playerSpan.textContent = player.name;
-        playersListSection.appendChild(playerSpan);
-    });
+    if (data.players.list !== undefined) {
+        data.players.list.forEach(player => {
+            const playerSpan = document.createElement('span');
+            playerSpan.textContent = player.name;
+            playersListSection.appendChild(playerSpan);
+        });
+    }
+
 }
 
 function measurePing(ip, port) {
@@ -81,9 +84,19 @@ async function startServer() {
     document.getElementById('spinnerLoading').style.display = 'block';
 
     try {
-        await fetch('https://l5y1ma3oq2.execute-api.sa-east-1.amazonaws.com/start-server', { method: 'GET' });
+        var response = await fetch('https://l5y1ma3oq2.execute-api.sa-east-1.amazonaws.com/start-server', { method: 'GET' });
+        response = await response.json();
+        if (response.online) {
+            document.getElementById("gridOnline").style.display = 'grid';
+            document.getElementById("gridOffline").style.display = 'none';
 
-        checkServerStatus("https://api.mcsrvstat.us/3/mc-bovinos.friday.codes");
+            document.getElementById("playersList").style.display = 'none';
+            document.getElementById("status").style.display = 'none';
+
+        }
+
+
+        //checkServerStatus("https://api.mcsrvstat.us/3/mc-bovinos.friday.codes");
     } catch (error) {
         console.error('Error starting server:', error);
     } finally {

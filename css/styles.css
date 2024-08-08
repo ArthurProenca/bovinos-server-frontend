@@ -233,3 +233,87 @@ body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Estilo para telas pequenas (smartphones) */
+@media (max-width: 600px) {
+    .main {
+        padding: 2rem;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
+        grid-template-areas:
+            "title"
+            "status"
+            "playersList"
+            "dns";
+    }
+
+    .title, .status, .playersList, .dns {
+        margin-top: 2rem;
+        text-align: center;
+        width: 100%;
+    }
+
+    .turnOn button {
+        font-size: 0.9em;
+        padding: 8px 16px;
+    }
+
+    .dns span {
+        font-size: 14px;
+    }
+
+    .dns button {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+
+    .playersList {
+        margin: 0;
+        padding: 0;
+    }
+
+    .offline-message p {
+        font-size: 1em;
+    }
+}
+
+/* Estilo para telas médias (tablets) */
+@media (min-width: 601px) and (max-width: 900px) {
+    .main {
+        padding: 3rem;
+    }
+
+    .grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto;
+        grid-template-areas:
+            "title title"
+            "status playersList"
+            "dns playersList";
+    }
+
+    .status, .playersList, .dns {
+        text-align: center;
+    }
+
+    .turnOn button {
+        font-size: 1em;
+        padding: 10px 20px;
+    }
+
+    .dns span {
+        font-size: 15px;
+    }
+
+    .dns button {
+        font-size: 13px;
+        padding: 5px 10px;
+    }
+
+    .offline-message p {
+        font-size: 1.1em;
+    }
+}
