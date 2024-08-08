@@ -82,11 +82,12 @@ function measurePing(ip, port) {
 
 async function startServer() {
     document.getElementById('spinnerLoading').style.display = 'block';
+    document.getElementById("gridOffline").style.display = 'none';
 
     try {
         var response = await fetch('https://l5y1ma3oq2.execute-api.sa-east-1.amazonaws.com/start-server', { method: 'GET' });
         response = await response.json();
-        if (response.online) {
+        if (response.online !== undefined) {
             document.getElementById("gridOnline").style.display = 'grid';
             document.getElementById("gridOffline").style.display = 'none';
 
