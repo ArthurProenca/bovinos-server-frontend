@@ -1,346 +1,292 @@
-@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Pixelify+Sans:wght@400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Pixelify+Sans:wght@400..700&display=swap');
+:root {
+    --primary: #4caf50; /* Verde Minecraft */
+    --primary-hover: #45a049;
+    --danger: #ff5252;
+    --dark-bg: #121212;
+    --card-bg: #1e1e1e;
+    --text-main: #ffffff;
+    --text-muted: #aaaaaa;
+    --border-radius: 12px;
+    --font-display: 'Pixelify Sans', cursive;
+    --font-body: 'Outfit', sans-serif;
+}
 
-
-body {
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--dark-bg);
+    color: var(--text-main);
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    width: 100vw;
-    background-color: gainsboro;
+    padding: 20px;
+    background-image: radial-gradient(circle at center, #2a2a2a 0%, #121212 100%);
 }
 
-.main {
+/* --- Card Container --- */
+.card {
+    background-color: var(--card-bg);
+    width: 100%;
+    max-width: 500px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+    border: 1px solid #333;
+    transition: transform 0.3s ease;
+}
+
+/* --- Header --- */
+.card-header {
+    padding: 20px;
+    background: rgba(0,0,0,0.2);
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    background-color: whitesmoke;
-    padding: 5rem;
-    border-radius: 15px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid #333;
 }
 
-.titleSection {
+.logo-area {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
 }
 
-.title {
-    font-family: "Outfit", sans-serif;
-    font-optical-sizing: auto;
-    font-style: normal;
+.logo-img {
+    width: 32px;
+    height: 32px;
 }
 
-.grid {
+.card-header h1 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--text-main);
+}
+
+/* --- Status Badge --- */
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    background: #333;
+}
+
+.status-badge .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #ccc;
+}
+
+.status-badge.online { background: rgba(76, 175, 80, 0.2); color: var(--primary); }
+.status-badge.online .dot { background-color: var(--primary); box-shadow: 0 0 8px var(--primary); }
+
+.status-badge.offline { background: rgba(255, 82, 82, 0.2); color: var(--danger); }
+.status-badge.offline .dot { background-color: var(--danger); }
+
+/* --- Views & Conteúdo --- */
+.view-content {
+    padding: 30px 25px;
+    display: none;
+    flex-direction: column;
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+.view-content.active { display: flex; }
+
+/* Grid de Informações */
+.info-grid {
     display: grid;
-    grid-template-columns: 0.4fr 1.6fr 1fr;
-    grid-template-rows: 0.1fr .8fr 0.1fr;
-    gap: 0px 0px;
-    grid-auto-flow: row;
-    grid-template-areas:
-        "title title title"
-        "status status playersList "
-        "dns dns playersList";
-    align-items: center;
-    justify-content: center;
-    border-radius: .5rem;
-    padding: 50px;
-    margin: 10px;
-    border: 2px solid lightgray;
-
-}
-
-#gridOnline {
-    display: none;
-}
-
-.gridOffline {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background-color: #f8d7da;
-    /* Cor de fundo leve para indicar que está offline */
-    border: 2px solid #f5c6cb;
-    /* Borda rosa clara */
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    /* Sombra suave */
-    margin: 20px;
-    width: 80%;
-    max-width: 600px;
-}
-
-.subtitle h3 {
-    color: #721c24;
-    /* Cor do texto para indicar um estado de erro */
-    font-family: 'Pixelify Sans', sans-serif;
-    font-size: 1rem;
-    margin-bottom: 20px;
-}
-
-.turnOn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
+    margin-bottom: 25px;
 }
 
-.turnOn span {
-    color: #721c24;
-}
-
-.turnOn button {
-    background-color: #d4edda;
-    /* Cor de fundo verde clara */
-    color: #155724;
-    /* Texto verde escuro */
-    border: 1px solid #c3e6cb;
-    /* Borda verde clara */
-    padding: 10px 20px;
-    font-size: 1em;
-    border-radius: 5px;
-    cursor: pointer;
-    font-family: 'Arial', sans-serif;
-}
-
-.turnOn button:hover {
-    background-color: #c3e6cb;
-    border-color: #b1dfbb;
-    /* Verde mais claro ao passar o mouse */
-}
-
-
-.title {
-    grid-area: title;
+.info-item {
+    background: #2a2a2a;
+    padding: 15px 10px;
+    border-radius: 8px;
     text-align: center;
-}
-
-.players {
-    grid-area: players;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-}
-
-.description {
-    grid-area: description;
-    text-align: center;
-}
-
-.playersList {
     display: flex;
     flex-direction: column;
-    text-align: center;
-    grid-area: playersList;
-}
-
-.icon {
-    grid-area: icon;
-    text-align: center;
-
-}
-
-.serverStatus span {
-    margin-left: 10px;
-}
-
-.dns {
-    grid-area: dns;
-    gap: 10px;
-    display: flex;
     align-items: center;
-    background: #1a1a1a;
-    color: #ffffff;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-
+    gap: 5px;
 }
 
-.dns span {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 16px;
+.info-item i { font-size: 1.2rem; color: var(--primary); margin-bottom: 5px; }
+.info-item span { font-weight: bold; font-size: 1.1rem; }
+.info-item small { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+
+/* DNS Box */
+.dns-container {
+    margin-bottom: 25px;
+    text-align: left;
 }
 
-.dns button {
-    background-color: #4CAF50;
+.dns-container label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.dns-box {
+    display: flex;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 4px;
+    align-items: center;
+}
+
+.dns-box code {
+    flex-grow: 1;
+    padding: 10px 15px;
+    font-family: monospace;
+    color: var(--primary);
+    font-size: 1rem;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.btn-icon {
+    background: #333;
     color: white;
     border: none;
-    padding: 5px 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
     cursor: pointer;
-    border-radius: 5px;
-    font-family: 'Arial', sans-serif;
-    font-size: 14px;
-    margin-left: 10px;
+    transition: background 0.2s;
 }
 
-.dns button:hover {
-    background-color: #45a049;
+.btn-icon:hover { background: #444; }
+
+.feedback-msg {
+    display: block;
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--primary);
+    height: 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    margin-top: 4px;
 }
 
-.status {
-    grid-area: status;
-    text-align: left;
+.feedback-msg.visible { opacity: 1; }
+
+/* Jogadores */
+.players-section h3 {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    color: var(--text-muted);
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.players-list {
     display: flex;
-    flex-direction: row;
-    width: 100%;
-    ;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.player-tag {
+    background: #2a2a2a;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
 }
 
-.copied {
-    display: none;
+.player-tag img { width: 16px; height: 16px; border-radius: 4px; }
+
+/* Offline & Botões */
+.offline-illustration {
+    font-size: 4rem;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
 }
 
-.playersSection {
-    display: flex;
-    flex-direction: column;
-}
+.view-content h2 { text-align: center; margin-bottom: 10px; }
+.view-content p { text-align: center; color: var(--text-muted); margin-bottom: 25px; }
 
-.offline-message {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.offline-message p {
-    font-size: 1.2em;
-    margin-bottom: 10px;
-}
-
-.offline-message button {
-    padding: 10px 20px;
-    font-size: 1em;
-    color: #ffffff;
-    background-color: #4CAF50;
+.btn-primary {
+    background: var(--primary);
+    color: white;
     border: none;
-    border-radius: 5px;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
     cursor: pointer;
+    width: 100%;
+    transition: transform 0.2s, background 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
 }
 
-.offline-message button:hover {
-    background-color: #45a049;
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
 }
 
+.btn-primary:disabled {
+    background: #444;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Spinner e Feedback de Start */
 .spinner {
-    border: 8px solid #f3f3f3;
-    border-top: 8px solid #3498db;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #333;
+    border-top: 4px solid var(--primary);
     border-radius: 50%;
-    width: 50px;
-    height: 50px;
     animation: spin 1s linear infinite;
     margin: 20px auto;
 }
 
-#serverStatus {
-    display: none;
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+    margin-top: 10px;
+    overflow: hidden;
 }
 
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+.progress-bar .fill {
+    height: 100%;
+    width: 30%;
+    background: var(--primary);
+    animation: loadingBar 2s infinite ease-in-out;
 }
 
-/* Estilo para telas pequenas (smartphones) */
-@media (max-width: 600px) {
-    .main {
-        padding: 2rem;
-    }
+/* Utilitários */
+.hidden { display: none !important; }
 
-    .grid {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto;
-        grid-template-areas:
-            "title"
-            "status"
-            "playersList"
-            "dns";
-    }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes loadingBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
 
-    .title,
-    .status,
-    .playersList,
-    .dns {
-        margin-top: 2rem;
-        text-align: center;
-        width: 100%;
-    }
-
-    .turnOn button {
-        font-size: 0.9em;
-        padding: 8px 16px;
-    }
-
-    .dns span {
-        font-size: 14px;
-    }
-
-    .dns button {
-        font-size: 12px;
-        padding: 4px 8px;
-    }
-
-    .playersList {
-        margin: 0;
-        padding: 0;
-    }
-
-    .offline-message p {
-        font-size: 1em;
-    }
-}
-
-/* Estilo para telas médias (tablets) */
-@media (min-width: 601px) and (max-width: 900px) {
-    .main {
-        padding: 3rem;
-    }
-
-    .grid {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto auto;
-        grid-template-areas:
-            "title title"
-            "status playersList"
-            "dns playersList";
-    }
-
-    .status,
-    .playersList,
-    .dns {
-        text-align: center;
-    }
-
-    .turnOn button {
-        font-size: 1em;
-        padding: 10px 20px;
-    }
-
-    .dns span {
-        font-size: 15px;
-    }
-
-    .dns button {
-        font-size: 13px;
-        padding: 5px 10px;
-    }
-
-    .offline-message p {
-        font-size: 1.1em;
-    }
+/* Responsividade Mobile */
+@media (max-width: 400px) {
+    .info-grid { grid-template-columns: 1fr; }
+    .card { border-radius: 0; height: 100vh; max-width: none; }
+    .card-header h1 { font-size: 1.2rem; }
 }

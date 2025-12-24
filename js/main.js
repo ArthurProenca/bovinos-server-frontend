@@ -1,130 +1,200 @@
-document.addEventListener('DOMContentLoaded', () => {
-    checkServerStatus("https://api.mcsrvstat.us/3/" + localStorage.getItem("dns"));
-});
+document.addEventListener('DOMContentLoaded', init);
 
-async function isServerOn(apiResponse) {
-    const data = await apiResponse;
-    return data.debug.ping;
+const CONFIG = {
+    DEFAULT_DNS: 'mc-bovinos.friday.codes', // DNS padrão caso o localStorage esteja vazio
+    API_STATUS: 'https://api.mcsrvstat.us/3/',
+    API_START: 'https://l5y1ma3oq2.execute-api.sa-east-1.amazonaws.com/start-server'
+};
+
+// Elementos do DOM (Cache para performance)
+const DOM = {
+    views: {
+        loading: document.getElementById('view-loading'),
+        online: document.getElementById('view-online'),
+        offline: document.getElementById('view-offline')
+    },
+    status: {
+        badge: document.getElementById('status-indicator'),
+        text: document.getElementById('status-text')
+    },
+    info: {
+        ping: document.getElementById('ping-value'),
+        version: document.getElementById('version-value'),
+        players: document.getElementById('players-count'),
+        list: document.getElementById('players-list'),
+        dns: document.getElementById('dns-address')
+    },
+    actions: {
+        copy: document.getElementById('btn-copy'),
+        copyMsg: document.getElementById('copy-feedback'),
+        start: document.getElementById('btn-start'),
+        startLog: document.getElementById('start-feedback')
+    }
+};
+
+async function init() {
+    // Recupera DNS salvo ou usa o padrão
+    let currentDns = localStorage.getItem("dns");
+    if (!currentDns || currentDns === "null") {
+        currentDns = CONFIG.DEFAULT_DNS;
+        localStorage.setItem("dns", currentDns);
+    }
+    
+    DOM.info.dns.textContent = currentDns;
+    
+    // Configura eventos
+    DOM.actions.copy.addEventListener('click', () => copyToClipboard(currentDns));
+    DOM.actions.start.addEventListener('click', startServer);
+
+    // Checagem inicial
+    checkServerStatus(currentDns);
 }
 
-async function checkServerStatus(url) {
-    document.getElementById('spinnerLoading').style.display = 'block';
+async function checkServerStatus(dns) {
+    switchView('loading');
+    updateStatusBadge('loading');
 
     try {
-        const response = await fetch(url);
-        const apiResponse = response.json();
+        const response = await fetch(CONFIG.API_STATUS + dns);
+        const data = await response.json();
 
-        if (await isServerOn(apiResponse)) {
-            const data = await apiResponse;
-            const serverIp = data.ip;
-            const serverPort = data.port;
-            const dnsAddress = data.hostname;
-
-            const dnsAddressElement = document.getElementById('dnsAddress');
-            dnsAddressElement.textContent = dnsAddress;
-
-            updatePageWithServerData(data);
-
-            measurePing(serverIp, serverPort);
-
-            document.getElementById("gridOnline").style.display = 'grid';
-            document.getElementById("gridOffline").style.display = 'none';
-
+        if (data.online) {
+            // Servidor Online
+            renderOnlineData(data);
+            switchView('online');
+            updateStatusBadge('online');
+            // Medir ping real do cliente (opcional, pois a API já traz info)
+            measureClientPing(data.ip, data.port);
         } else {
-            throw new Error('Server is offline');
+            // Servidor Offline
+            throw new Error('Offline');
         }
     } catch (error) {
-        console.error('Error fetching server data:', error);
-        document.getElementById("gridOnline").style.display = 'none';
-        document.getElementById("gridOffline").style.display = 'flex';
-    } finally {
-        document.getElementById('spinnerLoading').style.display = 'none';
+        console.warn('Servidor offline ou erro:', error);
+        switchView('offline');
+        updateStatusBadge('offline');
     }
 }
 
-function updatePageWithServerData(data) {
-    const versionElement = document.querySelector('.status .fa-tag + span');
-    versionElement.textContent = data.version;
+function renderOnlineData(data) {
+    DOM.info.version.textContent = data.version || '?';
+    DOM.info.players.textContent = data.players.online;
+    DOM.info.dns.textContent = data.hostname || localStorage.getItem("dns");
 
-    const playersElement = document.querySelector('.status .fa-users + span');
-    playersElement.textContent = `${data.players.online} Players`;
-
-    const playersListSection = document.querySelector('.playersSection');
-    playersListSection.innerHTML
-
-    if (data.players.list !== undefined) {
+    // Renderizar lista de jogadores
+    DOM.info.list.innerHTML = '';
+    if (data.players.list && data.players.list.length > 0) {
         data.players.list.forEach(player => {
-            const playerSpan = document.createElement('span');
-            playerSpan.textContent = player.name;
-            playersListSection.appendChild(playerSpan);
+            const span = document.createElement('span');
+            span.className = 'player-tag';
+            // Tenta pegar a cabeça do jogador (API externa comum de skins)
+            span.innerHTML = `<img src="https://api.mineatar.io/head/${player.uuid}" alt=""> ${player.name}`;
+            DOM.info.list.appendChild(span);
         });
+    } else {
+        DOM.info.list.innerHTML = '<span style="color:var(--text-muted); font-size: 0.9rem;">Ninguém online no momento.</span>';
     }
-
-}
-
-function measurePing(ip, port) {
-    const start = performance.now();
-
-    fetch(`${ip}:${port}`, { method: 'GET' })
-        .then(response => {
-            const end = performance.now();
-            const pingTime = Math.round(end - start);
-
-            const pingElement = document.querySelector('.status .fa-globe + span');
-            pingElement.textContent = `${pingTime}ms`;
-        })
-        .catch(error => {
-            console.error('Error measuring ping:', error);
-            const pingElement = document.querySelector('.status .fa-globe + span');
-            pingElement.textContent = 'N/A';
-        });
 }
 
 async function startServer() {
-    document.getElementById('spinnerLoading').style.display = 'block';
-    document.getElementById("gridOffline").style.display = 'none';
+    const btn = DOM.actions.start;
+    const log = DOM.actions.startLog;
+    
+    // UI Update para estado "Ligando"
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando AWS...';
+    log.classList.remove('hidden');
 
     try {
-        var response = await fetch('https://l5y1ma3oq2.execute-api.sa-east-1.amazonaws.com/start-server', { method: 'GET' });
-        response = await response.json();
-        const dns = JSON.parse(response.body).dns;
-        document.getElementById("dnsAddress").textContent = (dns);
-        document.getElementById("gridOnline").style.display = 'grid';
-        document.getElementById("gridOffline").style.display = 'none';
+        const rawResponse = await fetch(CONFIG.API_START);
+        const response = await rawResponse.json();
+        
+        // AWS Lambda retorna body como string as vezes, parse necessário
+        const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
+        const newDns = body.dns;
 
-        document.getElementById("playersList").style.display = 'none';
-        document.getElementById("ms").style.display = 'none';
-        document.getElementById("version").style.display = 'none';
-        document.getElementById("users").style.display = 'none';
+        if (newDns) {
+            localStorage.setItem("dns", newDns);
+            DOM.info.dns.textContent = newDns;
+            
+            btn.innerHTML = '<i class="fas fa-check"></i> Comando Enviado!';
+            document.querySelector('#start-feedback p').textContent = "Servidor ligando! A página recarregará em breve.";
+            
+            // Polling para verificar quando ficar online
+            setTimeout(() => {
+                location.reload(); 
+            }, 10000); // Recarrega em 10s para tentar checar o status novo
+        } else {
+            throw new Error("DNS não retornado pela API");
+        }
 
-        document.getElementById("serverStatus").style.display = "flex";
-        document.getElementById("serverStatusSpan").innerHTML = "O servidor deve iniciar em até 5 minutos, aguarde!";
-
-        localStorage.setItem("dns", dns);
-
-        checkServerStatus("https://api.mcsrvstat.us/3/" + dns);
     } catch (error) {
-        console.error('Error starting server:', error);
-    } finally {
-        document.getElementById('spinnerLoading').style.display = 'none';
+        console.error('Erro ao ligar:', error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao Ligar';
+        alert('Erro ao comunicar com a AWS. Tente novamente.');
     }
 }
 
-function copyToClipboard() {
-    var dnsAddress = document.getElementById('dnsAddress').innerText;
-    var textarea = document.createElement('textarea');
-    textarea.value = dnsAddress;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
+// Utilitários de UI
+function switchView(viewName) {
+    Object.values(DOM.views).forEach(el => el.classList.remove('active'));
+    Object.values(DOM.views).forEach(el => el.classList.add('hidden'));
+    
+    if(DOM.views[viewName]) {
+        DOM.views[viewName].classList.remove('hidden');
+        DOM.views[viewName].classList.add('active');
+    }
+}
 
-    var dnsSpan = document.getElementById('dnsAddress');
-    dnsSpan.innerHTML = 'Copiado com sucesso! =)';
-    dnsSpan.style.color = '#4CAF50';
+function updateStatusBadge(status) {
+    const badge = DOM.status.badge;
+    const text = DOM.status.text;
+    
+    badge.className = 'status-badge'; // reset
+    
+    if (status === 'online') {
+        badge.classList.add('online');
+        text.textContent = 'Online';
+    } else if (status === 'offline') {
+        badge.classList.add('offline');
+        text.textContent = 'Offline';
+    } else {
+        badge.classList.add('loading');
+        text.textContent = 'Verificando';
+    }
+}
 
-    setTimeout(() => {
-        dnsSpan.innerHTML = 'mc-bovinos.friday.codes';
-        dnsSpan.style.color = '#ffffff';
-    }, 3000);
+function measureClientPing(ip, port) {
+    const start = performance.now();
+    // O navegador bloqueia pings TCP reais, isso é apenas um fetch HTTP
+    // Se o servidor MC não tiver um webserver na porta, vai falhar, 
+    // mas serve para medir latência de rede aproximada se houver resposta (mesmo 404)
+    fetch(`http://${ip}:${port}`, { mode: 'no-cors' })
+        .then(() => {
+            const ms = Math.round(performance.now() - start);
+            DOM.info.ping.textContent = `${ms}ms`;
+        })
+        .catch(() => {
+            // Fallback comum: se falhar (o que é normal pra MC server puro), 
+            // deixamos um valor visual ou usamos o da API se disponível
+            DOM.info.ping.textContent = "Ok"; 
+        });
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        DOM.actions.copyMsg.classList.add('visible');
+        setTimeout(() => DOM.actions.copyMsg.classList.remove('visible'), 2000);
+    }).catch(err => {
+        console.error('Falha ao copiar', err);
+        // Fallback antigo se necessário
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        DOM.actions.copyMsg.classList.add('visible');
+    });
 }

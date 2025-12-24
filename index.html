@@ -1,67 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="pt-BR">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="/css/styles.css">
-	<script src="/js/main.js"></script>
-	<link rel="icon" href="assets/favicon.png">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-	<title>Bovinos - Minecraft Server</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bovinos - Status do Servidor</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="icon" href="assets/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-
 <body>
-	<main class="main">
-		<div id="spinnerLoading" class="spinner"></div>
-		<div class="grid" id="gridOnline">
-			<div class="title">
-				<h1>Bovinos - Server Status</h1>
-			</div>
-			<div id="playersList" class="playersList">
-				<article>
-					<span>
-						<b>Players Online</b>
-					</span>
-				</article>
-				<section class="playersSection">
 
-				</section>
-			</div>
-			<div class="dns">
-				<span id="dnsAddress"></span>
-				<button onclick="copyToClipboard()">Copiar DNS</button>
-			</div>
-			<div id = "status" class="status">
-				<article id = "ms">
-					<i class="fas fa-globe"></i>
-					<span></span>
-				</article>
-				<article id = "version">
-					<i class="fas fa-tag"></i>
-					<span></span>
-				</article>
-				<article id ="users">
-					<i class="fas fa-users"></i>
-					<span></span>
-				</article>
-				<article class="serverStatus" id = "serverStatus">
-					<i class="fas fa-globe"></i>
-					<span id ="serverStatusSpan"></span>
-				</article>
-			</div>
-		</div>
-		<div class="gridOffline" id="gridOffline">
-			<div class="subtitle">
-				<h3>O servidor está offline no momento :/</h3>
-			</div>
-			<section class="turnOn">
-				<span>Deseja ligá-lo?</span>
-				<button onclick="startServer()">Ligar Servidor</button>
-			</section>
-		</div>
+    <div class="background-overlay"></div>
 
-	</main>
+    <main class="card">
+        <header class="card-header">
+            <div class="logo-area">
+                <img src="assets/favicon.png" alt="Logo Bovinos" class="logo-img">
+                <h1>Bovinos Server</h1>
+            </div>
+            <div id="status-indicator" class="status-badge loading">
+                <span class="dot"></span>
+                <span id="status-text">Verificando...</span>
+            </div>
+        </header>
+
+        <div id="view-loading" class="view-content active">
+            <div class="spinner"></div>
+            <p>Conectando ao satélite...</p>
+        </div>
+
+        <div id="view-online" class="view-content hidden">
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <i class="fas fa-signal"></i>
+                    <span id="ping-value">-- ms</span>
+                    <small>Latência</small>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-tag"></i>
+                    <span id="version-value">--</span>
+                    <small>Versão</small>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-users"></i>
+                    <span id="players-count">0</span>
+                    <small>Online</small>
+                </div>
+            </div>
+
+            <div class="dns-container">
+                <label>Endereço de Conexão (DNS)</label>
+                <div class="dns-box">
+                    <code id="dns-address">...</code>
+                    <button id="btn-copy" class="btn-icon" aria-label="Copiar IP">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <span id="copy-feedback" class="feedback-msg">Copiado!</span>
+            </div>
+
+            <div class="players-section">
+                <h3>Jogadores Conectados</h3>
+                <div id="players-list" class="players-list">
+                    </div>
+            </div>
+        </div>
+
+        <div id="view-offline" class="view-content hidden">
+            <div class="offline-illustration">
+                <i class="fas fa-power-off"></i>
+            </div>
+            <h2>Servidor Desligado</h2>
+            <p>O servidor está hibernando para economizar recursos.</p>
+            
+            <button id="btn-start" class="btn-primary">
+                <i class="fas fa-bolt"></i> Ligar Servidor
+            </button>
+            
+            <div id="start-feedback" class="start-log hidden">
+                <p>Iniciando instância AWS... aguarde ~5 min.</p>
+                <div class="progress-bar"><div class="fill"></div></div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="/js/main.js"></script>
 </body>
-
 </html>
