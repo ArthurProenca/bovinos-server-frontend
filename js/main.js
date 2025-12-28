@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', init);
 
 const CONFIG = {
-    // API Principal
+    // API Principal (com cache)
     API_STATUS: 'https://api.mcsrvstat.us/3/',
-    // API Backup
+    // API Backup (Fallback rápido)
     API_BACKUP: 'https://mcapi.us/server/status?ip=', 
+    // Sua URL da Lambda
     API_START: 'https://l5y1ma3oq2.execute-api.sa-east-1.amazonaws.com/start-server'
 };
 
@@ -30,13 +31,15 @@ const DOM = {
         copyMsg: document.getElementById('copy-feedback'),
         start: document.getElementById('btn-start'),
         startLog: document.getElementById('start-feedback')
-    }
+    },
+    // Referência para o texto de loading
+    loadingText: document.querySelector('#view-loading p')
 };
 
+// Flag para saber se estamos no processo de ligar
 let isBooting = false;
 
 async function init() {
-    // Configura Botão Copiar
     DOM.actions.copy.addEventListener('click', () => {
         const text = DOM.info.dns.textContent;
         if (text && text !== '...') copyToClipboard(text);
@@ -44,82 +47,97 @@ async function init() {
 
     DOM.actions.start.addEventListener('click', startServer);
 
-    // Recupera DNS
     const currentDns = localStorage.getItem("dns");
     
     if (currentDns && currentDns !== "null") {
         DOM.info.dns.textContent = currentDns;
         checkServerStatus(currentDns);
     } else {
-        // Sem DNS salvo = Estado Offline
         switchView('offline');
         updateStatusBadge('offline');
     }
 }
 
 async function startServer() {
-    const btn = DOM.actions.start;
-    const log = DOM.actions.startLog;
+    // 1. FEEDBACK IMEDIATO (Antes de chamar a AWS)
+    // Oculta a tela offline e mostra o spinner geral
+    switchView('loading');
+    updateStatusBadge('loading');
+    if(DOM.loadingText) DOM.loadingText.textContent = "Contatando satélite AWS...";
     
-    // Feedback visual imediato no botão
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Chamando AWS...';
-    log.classList.remove('hidden');
+    // Reseta logs de erro antigos
+    DOM.actions.start.disabled = true;
 
     try {
+        // 2. Chama a Lambda (Isso pode demorar 5-10s)
         const rawResponse = await fetch(CONFIG.API_START);
+        
+        if (!rawResponse.ok) {
+            throw new Error(`Erro HTTP: ${rawResponse.status}`);
+        }
+
         const response = await rawResponse.json();
         
-        // Parse do body da AWS
+        // Parse seguro do body da AWS (às vezes vem stringificado)
         const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
         const newDns = body.dns;
 
         if (newDns) {
+            // 3. SUCESSO DA LAMBDA
             localStorage.setItem("dns", newDns);
-            
-            // --- AQUI ESTÁ A MUDANÇA ---
-            // 1. Mostra o DNS imediatamente
             DOM.info.dns.textContent = newDns;
             
-            // 2. Prepara a tela de "Online" com dados provisórios
-            DOM.info.version.textContent = "Carregando...";
-            DOM.info.players.textContent = "--";
-            DOM.info.ping.textContent = "--";
-            DOM.info.list.innerHTML = `
-                <div style="text-align:center; width:100%; color: var(--primary);">
-                    <i class="fas fa-cog fa-spin"></i> O servidor está subindo...<br>
-                    <small style="color:var(--text-muted)">Pode copiar o IP e tentar conectar em ~2 min.</small>
-                </div>
-            `;
-
-            // 3. Muda a view para Online AGORA (não espera a API)
+            // Atualiza status para modo "Booting"
             isBooting = true;
-            switchView('online');
-            
-            // 4. Badge fica "Amarelo/Iniciando"
             updateStatusBadge('booting');
 
-            // 5. Inicia checagem em background para atualizar players quando estiver pronto
+            // Prepara a interface "Online Provisória"
+            // Assim o usuário já vê o IP para copiar enquanto o server carrega
+            setupProvisoryOnlineView();
+            
+            // Inicia o polling para saber quando o Minecraft realmente subiu
             startPolling(newDns);
 
         } else {
-            throw new Error("DNS não veio na resposta");
+            throw new Error("A AWS respondeu, mas sem DNS.");
         }
 
     } catch (error) {
-        console.error('Erro ao ligar:', error);
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao Ligar';
-        alert('Erro ao comunicar com a AWS. Tente novamente.');
+        console.error('Falha ao iniciar:', error);
+        
+        // Se der erro, volta para a tela Offline para tentar de novo
         isBooting = false;
+        switchView('offline');
+        updateStatusBadge('offline');
+        
+        // Reabilita o botão
+        DOM.actions.start.disabled = false;
+        alert(`Não foi possível ligar o servidor.\nDetalhe: ${error.message || 'Erro desconhecido'}`);
     }
 }
 
+function setupProvisoryOnlineView() {
+    DOM.info.version.textContent = "Iniciando...";
+    DOM.info.players.textContent = "--";
+    DOM.info.ping.textContent = "--";
+    
+    // Feedback visual na lista de players
+    DOM.info.list.innerHTML = `
+        <div style="text-align:center; width:100%; color: var(--primary); margin-top: 10px;">
+            <i class="fas fa-satellite-dish fa-spin"></i> Servidor ligando...<br>
+            <small style="color:var(--text-muted)">Copie o IP acima. Conexão liberada em ~2 min.</small>
+        </div>
+    `;
+    
+    // Mostra a tela Online (mesmo que os dados ainda sejam falsos/loading)
+    switchView('online');
+}
+
 async function checkServerStatus(dns, isRetryLoop = false) {
-    // Se não é loop de retry e não estamos bootando agora, mostra loading normal
     if (!isRetryLoop && !isBooting) {
         switchView('loading');
         updateStatusBadge('loading');
+        if(DOM.loadingText) DOM.loadingText.textContent = "Verificando status...";
     }
 
     try {
@@ -130,7 +148,7 @@ async function checkServerStatus(dns, isRetryLoop = false) {
             renderRealData(data);
             return true;
         } else {
-            // Tenta Backup API
+            // Fallback para API secundária
             const backupResponse = await fetch(CONFIG.API_BACKUP + dns);
             const backupData = await backupResponse.json();
 
@@ -148,26 +166,22 @@ async function checkServerStatus(dns, isRetryLoop = false) {
             }
         }
     } catch (error) {
-        // Se estamos no processo de boot (Start clicado recentemente),
-        // IGNORA o erro offline. Mantém a tela "Online Provisória" pro usuário ver o IP.
-        if (isBooting) {
-            return false;
-        }
-        
-        console.warn('Offline:', error);
+        // Se estiver bootando, ignoramos erros de conexão (o servidor ainda tá subindo)
+        if (isBooting) return false;
+
+        console.warn('Check failed:', error);
         switchView('offline');
         updateStatusBadge('offline');
+        DOM.actions.start.disabled = false; // Garante que o botão destrave
         return false;
     }
 }
 
 function renderRealData(data) {
-    // O servidor respondeu de verdade!
-    isBooting = false; // Sai do modo boot
+    isBooting = false; // Sai do modo boot, dados agora são reais
     
     DOM.info.version.textContent = data.version || '?';
     DOM.info.players.textContent = data.players.online;
-    // Garante que o DNS na tela bate com o do storage/api
     DOM.info.dns.textContent = localStorage.getItem("dns") || data.hostname;
 
     DOM.info.list.innerHTML = '';
@@ -186,13 +200,13 @@ function renderRealData(data) {
     }
 
     switchView('online');
-    updateStatusBadge('online'); // Fica verde
+    updateStatusBadge('online');
     measureClientPing(data.ip || data.hostname, 25565);
 }
 
 function startPolling(dns) {
     let attempts = 0;
-    const maxAttempts = 60; // 5 minutos tentando
+    const maxAttempts = 60; // Tenta por 5 minutos (60 * 5s)
 
     const interval = setInterval(async () => {
         attempts++;
@@ -204,9 +218,8 @@ function startPolling(dns) {
         } else if (attempts >= maxAttempts) {
             clearInterval(interval);
             isBooting = false;
-            // Se falhou muito tempo, aí sim avisa que caiu
-            switchView('offline');
-            alert("Timeout: O servidor demorou demais para responder.");
+            // Timeout visual (mas não muda a tela pra não atrapalhar quem tá copiando IP)
+            DOM.info.list.innerHTML = '<span style="color:var(--danger)">Demorou muito para responder. Tente atualizar a página.</span>';
             resetStartButton();
         }
     }, 5000); 
@@ -214,13 +227,10 @@ function startPolling(dns) {
 
 function resetStartButton() {
     DOM.actions.start.disabled = false;
-    DOM.actions.start.innerHTML = '<i class="fas fa-bolt"></i> Ligar Servidor';
-    DOM.actions.startLog.classList.add('hidden');
 }
 
-// Utilitários de UI
+// Utilitários UI
 function switchView(viewName) {
-    // Se estiver bootando, proíbe voltar pra offline automaticamente
     if (isBooting && viewName === 'offline') return;
 
     Object.values(DOM.views).forEach(el => el.classList.remove('active'));
@@ -245,22 +255,18 @@ function updateStatusBadge(status) {
         badge.classList.add('offline');
         text.textContent = 'Offline';
     } else if (status === 'booting') {
-        // Reutiliza estilo de loading (amarelo) mas com texto diferente
         badge.classList.add('loading');
         text.textContent = 'Iniciando...';
     } else {
         badge.classList.add('loading');
-        text.textContent = 'Verificando';
+        text.textContent = 'Carregando...';
     }
 }
 
 function measureClientPing(ip, port) {
     const start = performance.now();
     fetch(`http://${ip}:${port}`, { mode: 'no-cors' })
-        .then(() => {
-            const ms = Math.round(performance.now() - start);
-            DOM.info.ping.textContent = `${ms}ms`;
-        })
+        .then(() => DOM.info.ping.textContent = `${Math.round(performance.now() - start)}ms`)
         .catch(() => DOM.info.ping.textContent = "--");
 }
 
