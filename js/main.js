@@ -1,12 +1,13 @@
 document.addEventListener('DOMContentLoaded', init);
 
 const CONFIG = {
-    DEFAULT_DNS: 'mc-bovinos.friday.codes', // DNS padrão caso o localStorage esteja vazio
+    // API Principal (com cache, mas rica em dados)
     API_STATUS: 'https://api.mcsrvstat.us/3/',
+    // API Secundária (Fallback, geralmente mais rápida para detectar mudanças)
+    API_BACKUP: 'https://mcapi.us/server/status?ip=', 
     API_START: 'https://l5y1ma3oq2.execute-api.sa-east-1.amazonaws.com/start-server'
 };
 
-// Elementos do DOM (Cache para performance)
 const DOM = {
     views: {
         loading: document.getElementById('view-loading'),
@@ -32,75 +33,114 @@ const DOM = {
     }
 };
 
+// Variável para controlar se estamos num loop de inicialização
+let isBooting = false;
+
 async function init() {
-    // Recupera DNS salvo ou usa o padrão
-    let currentDns = localStorage.getItem("dns");
-    if (!currentDns || currentDns === "null") {
-        currentDns = CONFIG.DEFAULT_DNS;
-        localStorage.setItem("dns", currentDns);
-    }
+    // 1. Configura eventos globais
+    // O copy agora lê o conteúdo atual do elemento, pois o DNS pode mudar sem reload
+    DOM.actions.copy.addEventListener('click', () => {
+        const textToCopy = DOM.info.dns.textContent;
+        if (textToCopy && textToCopy !== '...') copyToClipboard(textToCopy);
+    });
     
-    DOM.info.dns.textContent = currentDns;
-    
-    // Configura eventos
-    DOM.actions.copy.addEventListener('click', () => copyToClipboard(currentDns));
     DOM.actions.start.addEventListener('click', startServer);
 
-    // Checagem inicial
-    checkServerStatus(currentDns);
-}
-
-async function checkServerStatus(dns) {
-    switchView('loading');
-    updateStatusBadge('loading');
-
-    try {
-        const response = await fetch(CONFIG.API_STATUS + dns);
-        const data = await response.json();
-
-        if (data.online) {
-            // Servidor Online
-            renderOnlineData(data);
-            switchView('online');
-            updateStatusBadge('online');
-            // Medir ping real do cliente (opcional, pois a API já traz info)
-            measureClientPing(data.ip, data.port);
-        } else {
-            // Servidor Offline
-            throw new Error('Offline');
-        }
-    } catch (error) {
-        console.warn('Servidor offline ou erro:', error);
+    // 2. Tenta recuperar DNS salvo
+    const currentDns = localStorage.getItem("dns");
+    
+    if (currentDns && currentDns !== "null") {
+        // Se já temos um DNS, mostramos na tela e checamos o status
+        DOM.info.dns.textContent = currentDns;
+        checkServerStatus(currentDns);
+    } else {
+        // Sem DNS = Servidor nunca foi ligado ou cache limpo. 
+        // Assume estado Offline direto para permitir ligar.
+        console.log("Nenhum DNS salvo. Aguardando inicialização.");
         switchView('offline');
         updateStatusBadge('offline');
     }
 }
 
-function renderOnlineData(data) {
+async function checkServerStatus(dns, isRetryLoop = false) {
+    if (!isRetryLoop) {
+        switchView('loading');
+        updateStatusBadge('loading');
+    }
+
+    try {
+        // Tenta API Principal
+        const response = await fetch(CONFIG.API_STATUS + dns);
+        const data = await response.json();
+
+        if (data.online) {
+            handleOnline(data);
+            return true;
+        } else {
+            // Se principal deu offline, tenta a secundária (Fallback)
+            console.log("API Principal offline, tentando backup...");
+            const backupResponse = await fetch(CONFIG.API_BACKUP + dns);
+            const backupData = await backupResponse.json();
+
+            if (backupData.online) {
+                handleOnline({
+                    version: backupData.server.name,
+                    players: { online: backupData.players.now, list: [] },
+                    hostname: dns,
+                    ip: dns,
+                    port: 25565
+                });
+                return true;
+            } else {
+                throw new Error('Offline em ambas APIs');
+            }
+        }
+    } catch (error) {
+        if (isBooting) {
+            console.log('Servidor ainda iniciando...');
+            return false;
+        }
+        
+        console.warn('Servidor offline:', error);
+        switchView('offline');
+        updateStatusBadge('offline');
+        return false;
+    }
+}
+
+function handleOnline(data) {
+    isBooting = false;
+    
     DOM.info.version.textContent = data.version || '?';
     DOM.info.players.textContent = data.players.online;
-    DOM.info.dns.textContent = data.hostname || localStorage.getItem("dns");
+    // Garante que mostramos o DNS que funcionou (ou o salvo)
+    DOM.info.dns.textContent = localStorage.getItem("dns") || data.hostname || data.ip;
 
-    // Renderizar lista de jogadores
     DOM.info.list.innerHTML = '';
     if (data.players.list && data.players.list.length > 0) {
         data.players.list.forEach(player => {
             const span = document.createElement('span');
             span.className = 'player-tag';
-            // Tenta pegar a cabeça do jogador (API externa comum de skins)
-            span.innerHTML = `<img src="https://api.mineatar.io/head/${player.uuid}" alt=""> ${player.name}`;
+            const imgUrl = player.uuid 
+                ? `https://api.mineatar.io/head/${player.uuid}` 
+                : `https://api.mineatar.io/head/Steve`; 
+            
+            span.innerHTML = `<img src="${imgUrl}" alt=""> ${player.name}`;
             DOM.info.list.appendChild(span);
         });
     } else {
-        DOM.info.list.innerHTML = '<span style="color:var(--text-muted); font-size: 0.9rem;">Ninguém online no momento.</span>';
+        DOM.info.list.innerHTML = '<span style="color:var(--text-muted); font-size: 0.9rem;">Ninguém online.</span>';
     }
+
+    switchView('online');
+    updateStatusBadge('online');
+    measureClientPing(data.ip || data.hostname, data.port || 25565);
 }
 
 async function startServer() {
     const btn = DOM.actions.start;
     const log = DOM.actions.startLog;
     
-    // UI Update para estado "Ligando"
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando AWS...';
     log.classList.remove('hidden');
@@ -109,23 +149,29 @@ async function startServer() {
         const rawResponse = await fetch(CONFIG.API_START);
         const response = await rawResponse.json();
         
-        // AWS Lambda retorna body como string as vezes, parse necessário
         const body = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
         const newDns = body.dns;
 
         if (newDns) {
+            // Salva DNS novo
             localStorage.setItem("dns", newDns);
             DOM.info.dns.textContent = newDns;
             
-            btn.innerHTML = '<i class="fas fa-check"></i> Comando Enviado!';
-            document.querySelector('#start-feedback p').textContent = "Servidor ligando! A página recarregará em breve.";
+            btn.innerHTML = '<i class="fas fa-check"></i> Iniciando!';
             
-            // Polling para verificar quando ficar online
-            setTimeout(() => {
-                location.reload(); 
-            }, 10000); // Recarrega em 10s para tentar checar o status novo
+            // Entra em modo de boot
+            isBooting = true;
+            switchView('loading');
+            updateStatusBadge('loading');
+            
+            const loadingText = document.querySelector('#view-loading p');
+            if(loadingText) loadingText.innerHTML = `Servidor iniciando em: <br><code style="color:var(--primary)">${newDns}</code><br>Aguardando resposta...`;
+
+            // Começa a checar se ficou online
+            startPolling(newDns);
+
         } else {
-            throw new Error("DNS não retornado pela API");
+            throw new Error("DNS não retornado");
         }
 
     } catch (error) {
@@ -133,11 +179,36 @@ async function startServer() {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao Ligar';
         alert('Erro ao comunicar com a AWS. Tente novamente.');
+        isBooting = false;
     }
 }
 
-// Utilitários de UI
+function startPolling(dns) {
+    let attempts = 0;
+    const maxAttempts = 40; // Aumentei um pouco (40 * 5s = ~3 minutos e meio)
+
+    const interval = setInterval(async () => {
+        attempts++;
+        const isOnline = await checkServerStatus(dns, true);
+        
+        if (isOnline) {
+            clearInterval(interval);
+            // Reseta botão para uso futuro
+            DOM.actions.start.disabled = false;
+            DOM.actions.start.innerHTML = '<i class="fas fa-bolt"></i> Ligar Servidor';
+            DOM.actions.startLog.classList.add('hidden');
+        } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            isBooting = false;
+            switchView('offline');
+            alert("O servidor demorou muito para responder. Tente recarregar a página manualmente.");
+        }
+    }, 5000); 
+}
+
 function switchView(viewName) {
+    if (isBooting && viewName === 'offline') return;
+
     Object.values(DOM.views).forEach(el => el.classList.remove('active'));
     Object.values(DOM.views).forEach(el => el.classList.add('hidden'));
     
@@ -151,7 +222,7 @@ function updateStatusBadge(status) {
     const badge = DOM.status.badge;
     const text = DOM.status.text;
     
-    badge.className = 'status-badge'; // reset
+    badge.className = 'status-badge'; 
     
     if (status === 'online') {
         badge.classList.add('online');
@@ -161,24 +232,19 @@ function updateStatusBadge(status) {
         text.textContent = 'Offline';
     } else {
         badge.classList.add('loading');
-        text.textContent = 'Verificando';
+        text.textContent = isBooting ? 'Iniciando...' : 'Verificando';
     }
 }
 
 function measureClientPing(ip, port) {
     const start = performance.now();
-    // O navegador bloqueia pings TCP reais, isso é apenas um fetch HTTP
-    // Se o servidor MC não tiver um webserver na porta, vai falhar, 
-    // mas serve para medir latência de rede aproximada se houver resposta (mesmo 404)
     fetch(`http://${ip}:${port}`, { mode: 'no-cors' })
         .then(() => {
             const ms = Math.round(performance.now() - start);
             DOM.info.ping.textContent = `${ms}ms`;
         })
         .catch(() => {
-            // Fallback comum: se falhar (o que é normal pra MC server puro), 
-            // deixamos um valor visual ou usamos o da API se disponível
-            DOM.info.ping.textContent = "Ok"; 
+            DOM.info.ping.textContent = "--"; 
         });
 }
 
@@ -186,15 +252,5 @@ function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
         DOM.actions.copyMsg.classList.add('visible');
         setTimeout(() => DOM.actions.copyMsg.classList.remove('visible'), 2000);
-    }).catch(err => {
-        console.error('Falha ao copiar', err);
-        // Fallback antigo se necessário
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        DOM.actions.copyMsg.classList.add('visible');
-    });
+    }).catch(err => console.error('Falha ao copiar', err));
 }
