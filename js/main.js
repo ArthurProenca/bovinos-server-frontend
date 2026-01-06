@@ -57,35 +57,21 @@ async function startServer() {
     // 1. UI Imediata: Mostra carregamento assim que clica
     switchView('loading');
     updateStatusBadge('loading');
-    if(DOM.loadingText) DOM.loadingText.textContent = "Contatando satélite AWS...";
+    if(DOM.loadingText) DOM.loadingText.textContent = "Conectando na AWS...";
     
     DOM.actions.start.disabled = true;
 
     try {
         const rawResponse = await fetch(CONFIG.API_START);
-        
-        if (!rawResponse.ok) {
-            throw new Error(`Erro HTTP: ${rawResponse.status}`);
-        }
 
         const response = await rawResponse.json();
         console.log("Resposta AWS:", response); // Debug no console se der pau
 
         // 2. Extração de DNS à prova de falhas
         // O erro estava aqui: se response.body fosse undefined, quebrava tudo.
-        let newDns = null;
+        let newDns = "minecraft.reminis.link";
 
-        if (response.dns) {
-            // Caso A: JSON direto { "dns": "..." }
-            newDns = response.dns;
-        } else if (response.body) {
-            // Caso B: Proxy Integration { "body": "..." }
-            const parsedBody = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
-            newDns = parsedBody.dns;
-        }
-
-        if (newDns) {
-            localStorage.setItem("dns", newDns);
+        localStorage.setItem("dns", newDns);
             DOM.info.dns.textContent = newDns;
             
             isBooting = true;
@@ -104,11 +90,6 @@ async function startServer() {
             
             switchView('online');
             startPolling(newDns);
-
-        } else {
-            console.error("Estrutura do JSON recebido:", response);
-            throw new Error("A AWS respondeu OK, mas não encontrei o campo 'dns' no JSON.");
-        }
 
     } catch (error) {
         console.error('Falha crítica ao iniciar:', error);
